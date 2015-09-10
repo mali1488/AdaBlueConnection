@@ -9,7 +9,6 @@ Its is compatible with xcode 7.0 beta and swift 2.0.
 Initialize it with no arguments. Then it searchs for a device named "UART" 
 ```
 var AdaBluetoothController = AdaBlueConnection()
-
 ```
 Initialize it with a string argument to search for a specific name device. 
  
