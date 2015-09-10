@@ -49,6 +49,7 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
     
     func centralManager(central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: NSError?) {
         print("disconnet from \(peripheral.name), error: \(error.debugDescription)")
+        self.connected = false
     }
     
     func centralManager(central: CBCentralManager, willRestoreState dict: [String : AnyObject]) {
@@ -94,7 +95,14 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
     }
     
     func checkConnection() -> Bool {
-        return self.connected
+        if (self.connected) {
+            print("connected to \(self.currentPeripheral.name)")
+            return true
+        } else {
+            print("disconnected, try connecting again")
+            return false
+        }
+        
     }
     
     func connect() {
