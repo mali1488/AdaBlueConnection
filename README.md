@@ -6,7 +6,18 @@ this class. A lot of code comes from this bigger project: https://github.com/ada
 Its is compatible with xcode 7.0 beta and swift 2.0.
 
 # How to use
+Initialize it with no arguments. Then it searchs for a device named "UART" 
+```
+var AdaBluetoothController = AdaBlueConnection()
 
 ```
-vad a = 10
+Initialize it with a string argument to search for a specific name device. 
+ 
 ```
+// In Arduino editor
+BTLEserial.setDeviceName("myName")
+
+// In xcode
+var AdaBluetoothController = AdaBlueConnection("myName")
+```
+
