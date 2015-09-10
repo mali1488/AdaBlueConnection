@@ -7,3 +7,6 @@ Its is compatible with xcode 7.0 beta and swift 2.0.
 
 # How to use
 
+```
+vad a = 10
+```
