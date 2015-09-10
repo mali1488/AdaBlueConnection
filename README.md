@@ -21,3 +21,7 @@ BTLEserial.setDeviceName("myName")
 var AdaBluetoothController = AdaBlueConnection("myName")
 ```
 
+When connection is successfull you can just send a string this easy.
+```
+AdaBluetoothController.writeString("my string to send")
+```
