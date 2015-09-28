@@ -3,18 +3,17 @@
 
 import Foundation
 import CoreBluetooth
+import UIKit
 
 class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegate{
     var centralManager:CBCentralManager!
     var blueToothReady = false
     var connected = false
     var currentPeripheral:CBPeripheral!
-    
-    //var uartService:CBService?
+    var contrinueCalibration = true
+
     var rxCharacteristic:CBCharacteristic?
     var txCharacteristic:CBCharacteristic?
-    
-    var customName = ""
     
     override init(){
         super.init()
@@ -58,6 +57,7 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
     
     func centralManager(central: CBCentralManager, didConnectPeripheral peripheral: CBPeripheral) {
         self.connected = true
+        peripheral.delegate = self;
         peripheral.discoverServices(nil)
         print("connected successfully to \(peripheral.name)")
     }
@@ -95,6 +95,7 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
     }
     
     func checkConnection() -> Bool {
+        print("check connection")
         if (self.connected) {
             print("connected to \(self.currentPeripheral.name)")
             return true
@@ -102,12 +103,10 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
             print("disconnected, try connecting again")
             return false
         }
-        
     }
     
     func connect() {
-        print("trying to connect to periphial \(self.currentPeripheral.name)")
-        centralManager.connectPeripheral(self.currentPeripheral, options: nil)
+        discoverDevices()
     }
     
     func peripheral(peripheral: CBPeripheral, didDiscoverServices error: NSError?) {
@@ -126,20 +125,24 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
             peripheral.discoverCharacteristics(nil, forService: service)            
         }
     }
+    
     func peripheral(peripheral: CBPeripheral, didDiscoverCharacteristicsForService service: CBService, error: NSError?) {
         if error != nil {
             print("didDiscoverCharacteristicsForService, error: \(error.debugDescription)")
             return
         }
+        print("---- charac serrvice ----")
         for c in service.characteristics ?? [] {
             print("service charac found")
             switch c.UUID {
             case CBUUID(string: "6e400002-b5a3-f393-e0a9-e50e24dcca9e"): //txCharacteristicUUID
                 print("didDiscoverCharacteristicsForService \(service.description) : TX")
+                self.currentPeripheral.setNotifyValue(true, forCharacteristic: c)
                 self.txCharacteristic = c
                 break
             case CBUUID(string: "6e400003-b5a3-f393-e0a9-e50e24dcca9e"): //rxCharacteristicUUID
                 print("didDiscoverCharacteristicsForService \(service.description) : RX")
+                self.currentPeripheral.setNotifyValue(true, forCharacteristic: c)
                 self.rxCharacteristic = c
                 break
             default:
@@ -149,21 +152,60 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
         }
     }
     
-    /*func peripheral(peripheral: CBPeripheral, didDiscoverDescriptorsForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
-        print("didDiscoverDescriptorsForCharacteristic")
-    }*/
-    
-    func writeString(string:NSString){
-        let data = NSData(bytes: string.UTF8String, length: string.length)
-        print("sending data to \(self.currentPeripheral.name)")
-        writeRawData(data)
+    func readValueForCharacteristic(_ characteristic: CBCharacteristic) {
+        
     }
     
-    func writeRawData(data:NSData) {
+    func peripheral(peripheral: CBPeripheral, didUpdateValueForDescriptor descriptor: CBDescriptor, error: NSError?) {
+        print("read value")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didDiscoverIncludedServicesForService service: CBService, error: NSError?) {
+        print("include service");
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
+        print("didmodifyservice")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: NSError?) {
+        print("updated rssi")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didUpdateValueForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
+        // This is where data is received when sent from other peripheral BLE device
+        var dataString = NSString(data: characteristic.value!, encoding:NSUTF8StringEncoding)
+        print(dataString!)
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didUpdateNotificationStateForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
+        print("didUpdateNotificationStateForCharacteristic")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didWriteValueForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
+        print("didWriteValueForCharacteristic")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didWriteValueForDescriptor descriptor: CBDescriptor, error: NSError?) {
+        print("didWriteValueForDescriptor")
+    }
+    
+    func peripheral(peripheral: CBPeripheral, didDiscoverDescriptorsForCharacteristic characteristic: CBCharacteristic, error: NSError?) {
+        print("didDiscoverDescriptorsForCharacteristic")
+    }
+    
+    func writeString(string:NSString) -> Bool {
+        let data = NSData(bytes: string.UTF8String, length: string.length)
+        print("sending data: \(string), to: \(self.currentPeripheral.name)")
+        return writeRawData(data)
+    }
+    
+    func writeRawData(data:NSData) -> Bool {
         //Send data to peripheral
+        
         if (txCharacteristic == nil){
             print("writeRawData, Unable to write data without txcharacteristic")
-            return
+            return false
         }
         
         var writeType:CBCharacteristicWriteType
@@ -174,7 +216,7 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
             writeType = CBCharacteristicWriteType.WithResponse
         } else{
             print("writeRawData, Unable to write data without characteristic write property")
-            return
+            return false
         }
         
         //send data in lengths of <= 20 bytes
@@ -189,7 +231,7 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
             var sentData = 0
             while sentData < dataLength {
                 
-                var remainder = dataLength - sentData
+                let remainder = dataLength - sentData
                 if remainder <= lengthToSend {
                     lengthToSend = remainder
                 }
@@ -203,5 +245,6 @@ class AdaBlueConnection: NSObject, CBCentralManagerDelegate ,CBPeripheralDelegat
                 sentData += lengthToSend
             }
         }
+        return true
     }
 }
