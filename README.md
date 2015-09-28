@@ -27,7 +27,7 @@ AdaBluetoothController.writeString("my string to send")
 When data is sent from other BLE device, it is recieved in this function
 ```
     func peripheral(peripheral: CBPeripheral, didUpdateValueForCharacteristic characteristic: CBCharacteristic, error: NSError?) { 
-    var dataString = NSString(data: characteristic.value!, encoding:NSUTF8StringEncoding)
+     var dataString = NSString(data: characteristic.value!, encoding:NSUTF8StringEncoding)
     }
 
 ```
